@@ -14,10 +14,14 @@
 
 ### Step 1:
 
-1. drag & drop any `.mkv` / `.flv` files (*OBS*, *Bilibili Live Recorder*) into `.exe` file.
-2. `Win + R` and run `shell:sendto`, copy shortcut of `.exe` file into it, after select multiple files, right click on it, and choose `Send to -> Convert2MP4`.
-3. directly open `.exe` file, drag & drop file in it or copy file path, one file per line, leave blank
+1. Drag & drop any `.mkv` / `.flv` files (*OBS*, *Bilibili Live Recorder*) into `.exe` file.
+
+2. `Win + R` and run `shell:sendto`, copy shortcut of `.exe` file into it.
+
+    After select multiple files, right click on it, and choose `Send to -> Convert2MP4`.
+
+3. Directly open `.exe` file, drag & drop file in it or copy file path, one file per line, leave blank to start converting
 
 ### Step 2:
 
-after all convert task complete, you will get prompt about whether delete the original file, enter `y` or `yes` to do so.
+After all convert task complete, you will get prompt about whether delete the original file, enter `y` or `yes` to do so.
