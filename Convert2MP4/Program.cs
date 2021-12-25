@@ -63,7 +63,7 @@ namespace Convert2MP4
                 if (File.Exists(s) && Path.GetExtension(s) != ".mp4")
                 {
                     // String arg = "-i \"" + s + "\" -c copy -copyts \"" + Path.GetFullPath(s).Replace(Path.GetExtension(s), ".mp4\"");
-                    String arg = "-i \"" + s + "\" -c copy -copyts \"" + Path.GetDirectoryName(s) + "\\" + Path.GetFileNameWithoutExtension(s) + ".mp4\"";
+                    String arg = "-y -i \"" + s + "\" -c copy -copyts \"" + Path.GetDirectoryName(s) + "\\" + Path.GetFileNameWithoutExtension(s) + ".mp4\"";
                     ffmpeg4Info.Arguments = arg;
                     Process ffmpeg = new Process() { StartInfo = ffmpeg4Info };
                     // ffmpeg.OutputDataReceived += (sender, e) =>
@@ -88,9 +88,14 @@ namespace Convert2MP4
                     // }
                     try
                     {
-                        ffmpeg.Start();
-                        // ffmpeg.BeginOutputReadLine();
-                        ffmpeg.WaitForExit();
+                        do
+                        {
+                            ffmpeg.Start();
+                            // ffmpeg.BeginOutputReadLine();
+                            ffmpeg.WaitForExit();
+                            Console.WriteLine(" * ffmpeg exit with: " + ffmpeg.ExitCode);
+                        }
+                        while (ffmpeg.ExitCode != 0);
                     }
                     catch (Exception e)
                     {
