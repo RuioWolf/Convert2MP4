@@ -14,7 +14,9 @@ namespace Convert2MP4
 {
 	class Settings
 	{
-		public string Pattern { get; set; }
+		public string Include { get; set; }
+
+		public string Exclude { get; set; }
 
 		public string Cmd { get; set; }
 
@@ -33,12 +35,13 @@ namespace Convert2MP4
 		{
 			Settings settings = new Settings()
 			{
-				Pattern = ".*\\.(flv)$",
+				Include = ".*\\.(flv)$",
+				Exclude = "^\\D+-(19625)-",
 				KeepLookup = true,
 				CleanupMode = false,
 				CleanupDays = 3
 			};
-			Regex regex = new Regex(settings.Pattern);
+			Regex includeRegex = new Regex(settings.Include), excludeRegex = new Regex(settings.Exclude);
 			List<String> list = new List<string>();
 			if (args.Length <= 0)
 			{
@@ -76,16 +79,17 @@ namespace Convert2MP4
 					settings.CleanupMode = true;
 					try
 					{
-						int? days = int.Parse(s.Substring(3, s.Length - 3));
-						settings.CleanupDays = days ?? 3;
+						// int? days = int.Parse(s.Substring(3, s.Length - 3));
+						// settings.CleanupDays = days ?? settings.CleanupDays;
+						settings.CleanupDays = int.Parse(s.Substring(3, s.Length - 3));
 					}
-					catch (Exception e)
+					catch (Exception)
 					{
 						Console.WriteLine(" * Parse Error, use default cleanup settings: " + settings.CleanupDays);
 					}
 					continue;
 				}
-				LookupFilesInDirectory(s, ref queue, regex, settings.KeepLookup);
+				LookupFilesInDirectory(s, ref queue, includeRegex, excludeRegex, settings.KeepLookup);
 			}
 			Console.WriteLine("**********  Task Info  **********");
 			foreach (String s in queue)
@@ -153,7 +157,7 @@ namespace Convert2MP4
 				{
 					string[] str = Path.GetFileNameWithoutExtension(s).Split(char.Parse("-"));
 					DateTime time = DateTime.Parse(str[2].Insert(6, "-").Insert(4, "-"));
-					if (time.AddDays(double.Parse(settings.CleanupDays.ToString())) <= DateTime.Now && str[1]!="19625")
+					if (time.AddDays(double.Parse(settings.CleanupDays.ToString())) <= DateTime.Today && str[1] != "19625")
 					{
 						var task = DeleteRawFileAsync(s);
 						tasks.Add(task);
@@ -169,13 +173,7 @@ namespace Convert2MP4
 			if (!settings.CleanupMode)
 			{
 				Console.WriteLine(" * Delete raw file? (Y/N)");
-				String select;
-				do
-				{
-					select = Console.ReadLine();
-				}
-				while (String.IsNullOrEmpty(select));
-				if (select.ToLower() == "y" || select.ToLower() == "yes")
+				if (IsComfirmed())
 				{
 					foreach (String s in queue)
 					{
@@ -188,14 +186,15 @@ namespace Convert2MP4
 					}
 				}
 			}
-			await Task.WhenAll(tasks);
+			if (tasks.Count > 0)
+				await Task.WhenAll(tasks);
 			Console.WriteLine();
-			Console.WriteLine(" * Total delete tasks: "+tasks.Count);
+			Console.WriteLine(" * Total delete tasks: " + tasks.Count);
 			Console.WriteLine();
 			Thread.Sleep(2 * 1000);
 		}
 
-		private static void LookupFilesInDirectory(string s, ref List<string> fileQueue, Regex regex, bool ifKeepLookup)
+		private static void LookupFilesInDirectory(string s, ref List<string> fileQueue, Regex includeRegex, Regex excludeRegex, bool ifKeepLookup)
 		{
 			if (!File.Exists(s) && Directory.Exists(s)) // 传进来的 s 是目录的情况下递归添加文件
 			{
@@ -205,27 +204,51 @@ namespace Convert2MP4
 				{
 					if (Directory.Exists(file) && ifKeepLookup) // 目录下还有目录且设置递归查找为真
 					{
-						LookupFilesInDirectory(file, ref fileQueue, regex, true);
+						LookupFilesInDirectory(file, ref fileQueue, includeRegex, excludeRegex, true);
 					}
-					if (regex.IsMatch(file))
+					else if (ShouldBeInclude(file, includeRegex, excludeRegex))
 					{
 						Console.WriteLine(" * Match! Adding file: " + file); // 添加目录下符合条件的文件
 						fileQueue.Add(file);
 					}
 				}
 			}
-			else if (File.Exists(s)) // 传进来的 s 本身就是文件的情况下
+			else if (ShouldBeInclude(s, includeRegex, excludeRegex)) // 传进来的 s 本身就是文件的情况下
 			{
-				if (regex.IsMatch(s))
-				{
-					Console.WriteLine(" * Match! Adding file: " + s);
-					fileQueue.Add(s);
-				}
+				Console.WriteLine(" * Match! Adding file: " + s);
+				fileQueue.Add(s);
 			}
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="filename">use absolute path</param>
+		/// <param name="includeRegex"></param>
+		/// <param name="excludeRegex"></param>
+		/// <returns></returns>
+		private static bool ShouldBeInclude(String filename, Regex includeRegex, Regex excludeRegex)
+		{
+			if (File.Exists(filename) && includeRegex.IsMatch(filename) && !excludeRegex.IsMatch(filename))
+				return true;
+			return false;
+		}
+
+		private static bool IsComfirmed()
+		{
+			String select;
+			do
+			{
+				select = Console.ReadLine();
+			}
+			while (String.IsNullOrEmpty(select));
+			if (select.ToLower() == "y" || select.ToLower() == "yes")
+				return true;
+			return false;
+		}
+
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-		static async Task DeleteRawFileAsync(String file)
+		private static async Task DeleteRawFileAsync(String file)
 		{
 			Console.WriteLine(" * Deleting: " + Path.GetFileName(file));
 #if !DEBUG
