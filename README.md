@@ -10,6 +10,12 @@
 
 
 
+## Configure
+
+1. Change (those lines)[https://github.com/RuioWolf/Convert2MP4/blob/3ef97f85c09e982cd156c3eed2e7205f21470636/Convert2MP4/Program.cs#L38].
+
+
+
 ## Usage
 
 ### Step 1:
