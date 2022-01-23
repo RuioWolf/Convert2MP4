@@ -36,7 +36,7 @@ namespace Convert2MP4
 			Settings settings = new Settings()
 			{
 				Include = ".*\\.(flv)$",
-				Exclude = "^\\D+-(19625)-",
+				Exclude = "^录制-(19625)-.*",
 				KeepLookup = true,
 				CleanupMode = false,
 				CleanupDays = 3
@@ -64,7 +64,7 @@ namespace Convert2MP4
 			}
 			if (String.IsNullOrEmpty(list[^1]))
 			{
-				list.RemoveAt(list.Count - 1);
+				list.Remove("");
 			}
 			if (list.Count <= 0)
 			{
@@ -143,6 +143,7 @@ namespace Convert2MP4
 							// ffmpeg.BeginOutputReadLine();
 							ffmpeg.WaitForExit();
 							Console.WriteLine(" * ffmpeg exit with: " + ffmpeg.ExitCode);
+							Thread.Sleep(1000);
 						}
 						while (ffmpeg.ExitCode != 0);
 					}
@@ -157,7 +158,7 @@ namespace Convert2MP4
 				{
 					string[] str = Path.GetFileNameWithoutExtension(s).Split(char.Parse("-"));
 					DateTime time = DateTime.Parse(str[2].Insert(6, "-").Insert(4, "-"));
-					if (time.AddDays(double.Parse(settings.CleanupDays.ToString())) <= DateTime.Today && str[1] != "19625")
+					if (time.AddDays(double.Parse(settings.CleanupDays.ToString())) <= DateTime.Today && !excludeRegex.IsMatch(Path.GetFileName(s)))
 					{
 						var task = DeleteRawFileAsync(s);
 						tasks.Add(task);
@@ -187,9 +188,11 @@ namespace Convert2MP4
 				}
 			}
 			if (tasks.Count > 0)
+			{
 				await Task.WhenAll(tasks);
-			Console.WriteLine();
-			Console.WriteLine(" * Total delete tasks: " + tasks.Count);
+				Console.WriteLine();
+				Console.WriteLine(" * Total delete tasks: " + tasks.Count);
+			}
 			Console.WriteLine();
 			Thread.Sleep(2 * 1000);
 		}
@@ -213,7 +216,7 @@ namespace Convert2MP4
 					}
 				}
 			}
-			else if (ShouldBeInclude(s, includeRegex, excludeRegex)) // 传进来的 s 本身就是文件的情况下
+			else if (ShouldBeInclude(s, includeRegex)) // 传进来的 s 本身就是文件的情况下
 			{
 				Console.WriteLine(" * Match! Adding file: " + s);
 				fileQueue.Add(s);
@@ -224,12 +227,19 @@ namespace Convert2MP4
 		/// 
 		/// </summary>
 		/// <param name="filename">use absolute path</param>
-		/// <param name="includeRegex"></param>
-		/// <param name="excludeRegex"></param>
+		/// <param name="includeRegex">filename regex</param>
+		/// <param name="excludeRegex">filename regex</param>
 		/// <returns></returns>
 		private static bool ShouldBeInclude(String filename, Regex includeRegex, Regex excludeRegex)
 		{
-			if (File.Exists(filename) && includeRegex.IsMatch(filename) && !excludeRegex.IsMatch(filename))
+			if (File.Exists(filename) && includeRegex.IsMatch(Path.GetFileName(filename)) && !excludeRegex.IsMatch(Path.GetFileName(filename)))
+				return true;
+			return false;
+		}
+
+		private static bool ShouldBeInclude(String filename, Regex includeRegex)
+		{
+			if (File.Exists(filename) && includeRegex.IsMatch(filename))
 				return true;
 			return false;
 		}
