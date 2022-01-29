@@ -35,7 +35,7 @@ namespace Convert2MP4
 		{
 			Settings settings = new Settings()
 			{
-				Include = ".*\\.(flv)$",
+				Include = ".*\\.(flv|mkv)$",
 				Exclude = "^录制-(19625)-.*",
 				KeepLookup = true,
 				CleanupMode = false,
@@ -134,7 +134,7 @@ namespace Convert2MP4
 					// {
 					//     Console.WriteLine(str);
 					// }
-#if !DEBUG
+#if !DEBUG          // 自用记得调成 release 然后再 build 不然什么也不会做
 					try
 					{
 						do
@@ -197,6 +197,16 @@ namespace Convert2MP4
 			Thread.Sleep(2 * 1000);
 		}
 
+		/// <summary>
+		/// 方法逻辑: 1. 传进来的 s 本身就是文件的情况下 检查 s 是否存在
+		///          2. 传进来的 s 是文件夹的情况下 ifKeepLookup 为真则递归查找文件夹包含子文件夹下符合条件的文件
+		///          3. 传进来的 s 是文件夹的情况下 ifKeepLookup 为假则只判断该文件夹下的文件是否符合条件
+		/// </summary>
+		/// <param name="s">file path</param>
+		/// <param name="fileQueue">ref string list</param>
+		/// <param name="includeRegex"></param>
+		/// <param name="excludeRegex"></param>
+		/// <param name="ifKeepLookup"></param>
 		private static void LookupFilesInDirectory(string s, ref List<string> fileQueue, Regex includeRegex, Regex excludeRegex, bool ifKeepLookup)
 		{
 			if (!File.Exists(s) && Directory.Exists(s)) // 传进来的 s 是目录的情况下递归添加文件
@@ -216,7 +226,7 @@ namespace Convert2MP4
 					}
 				}
 			}
-			else if (ShouldBeInclude(s, includeRegex)) // 传进来的 s 本身就是文件的情况下
+			else if (ShouldBeInclude(s)) // 传进来的 s 本身就是文件的情况下
 			{
 				Console.WriteLine(" * Match! Adding file: " + s);
 				fileQueue.Add(s);
@@ -240,6 +250,12 @@ namespace Convert2MP4
 		private static bool ShouldBeInclude(String filename, Regex includeRegex)
 		{
 			if (File.Exists(filename) && includeRegex.IsMatch(filename))
+				return true;
+			return false;
+		}
+		private static bool ShouldBeInclude(String filename)
+		{
+			if (File.Exists(filename))
 				return true;
 			return false;
 		}
