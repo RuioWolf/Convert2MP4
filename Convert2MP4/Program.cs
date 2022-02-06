@@ -101,6 +101,7 @@ namespace Convert2MP4
 			ProcessStartInfo ffmpeg4Info = new ProcessStartInfo() { CreateNoWindow = false, FileName = "ffmpeg.exe" };
 			int c = 1, t = queue.Count;
 			List<Task> tasks = new List<Task>();
+			bool delComfirmed = IsComfirmed();
 			foreach (string s in queue)
 			{
 				Console.WriteLine(" * Task ( " + c + " / " + t + " ): " + s);
@@ -134,7 +135,7 @@ namespace Convert2MP4
 					// {
 					//     Console.WriteLine(str);
 					// }
-#if !DEBUG          // 自用记得调成 release 然后再 build 不然什么也不会做
+#if !DEBUG // 自用记得调成 release 然后再 build 不然什么也不会做
 					try
 					{
 						do
@@ -153,10 +154,15 @@ namespace Convert2MP4
 						throw;
 					}
 #endif
+					if (delComfirmed)
+					{
+						var task = DeleteRawFileAsync(s);
+						tasks.Add(task);
+					}
 				}
-				else if (File.Exists(s) && settings.CleanupMode)
+				else if (File.Exists(s) && settings.CleanupMode && delComfirmed)
 				{
-					string[] str = Path.GetFileNameWithoutExtension(s).Split(char.Parse("-"));
+					string[] str = Path.GetFileNameWithoutExtension(s).Split(char.Parse("-")); // 录制-<房间号>-<日期>-<时间>-<毫秒>-<标题>.flv
 					DateTime time = DateTime.Parse(str[2].Insert(6, "-").Insert(4, "-"));
 					if (time.AddDays(double.Parse(settings.CleanupDays.ToString())) <= DateTime.Today && !excludeRegex.IsMatch(Path.GetFileName(s)))
 					{
@@ -171,22 +177,18 @@ namespace Convert2MP4
 				Console.WriteLine(" * Task ( " + c++ + " / " + t + " ) Completed!");
 				Console.WriteLine();
 			}
-			if (!settings.CleanupMode)
-			{
-				Console.WriteLine(" * Delete raw file? (Y/N)");
-				if (IsComfirmed())
-				{
-					foreach (String s in queue)
-					{
-						// Console.WriteLine(" * Deleting: " + Path.GetFileName(s1));
-						// File.Delete(s1);
-						// Console.WriteLine(" * Deleted: " + Path.GetFileName(s1));
-
-						var task = DeleteRawFileAsync(s);
-						tasks.Add(task);
-					}
-				}
-			}
+			// if (!settings.CleanupMode && comformed)
+			// {
+			// 	foreach (String s in queue)
+			// 	{
+			// 		// Console.WriteLine(" * Deleting: " + Path.GetFileName(s1));
+			// 		// File.Delete(s1);
+			// 		// Console.WriteLine(" * Deleted: " + Path.GetFileName(s1));
+			//
+			// 		var task = DeleteRawFileAsync(s);
+			// 		tasks.Add(task);
+			// 	}
+			// }
 			if (tasks.Count > 0)
 			{
 				await Task.WhenAll(tasks);
@@ -253,6 +255,7 @@ namespace Convert2MP4
 				return true;
 			return false;
 		}
+
 		private static bool ShouldBeInclude(String filename)
 		{
 			if (File.Exists(filename))
@@ -262,6 +265,7 @@ namespace Convert2MP4
 
 		private static bool IsComfirmed()
 		{
+			Console.WriteLine(" * Delete those files after processing? (Y/N)");
 			String select;
 			do
 			{
