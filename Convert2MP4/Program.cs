@@ -156,8 +156,8 @@ namespace Convert2MP4
 #endif
 					if (delComfirmed)
 					{
-						var task = DeleteRawFileAsync(s);
-						tasks.Add(task);
+						// var task = DeleteRawFileAsync(s);
+						tasks.Add(DeleteRawFileAsync(s));
 					}
 				}
 				else if (File.Exists(s) && settings.CleanupMode && delComfirmed)
@@ -166,8 +166,8 @@ namespace Convert2MP4
 					DateTime time = DateTime.Parse(str[2].Insert(6, "-").Insert(4, "-"));
 					if (time.AddDays(double.Parse(settings.CleanupDays.ToString())) <= DateTime.Today && !excludeRegex.IsMatch(Path.GetFileName(s)))
 					{
-						var task = DeleteRawFileAsync(s);
-						tasks.Add(task);
+						// var task = DeleteRawFileAsync(s);
+						tasks.Add(DeleteRawFileAsync(s));
 					}
 				}
 				else
@@ -278,12 +278,13 @@ namespace Convert2MP4
 		}
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-		private static async Task DeleteRawFileAsync(String file)
+		private static Task DeleteRawFileAsync(String file)
 		{
 			Console.WriteLine(" * Deleting: " + Path.GetFileName(file));
 #if !DEBUG
-			await Task.Run(() => { File.Delete(file); });
-			Console.WriteLine(" * Deleted: " + Path.GetFileName(file));
+			return Task.Run(() => { File.Delete(file); Console.WriteLine(" * Deleted: " + Path.GetFileName(file)); });
+			// await Task.Run(() => { File.Delete(file); });
+			// Console.WriteLine(" * Deleted: " + Path.GetFileName(file));
 #endif
 		}
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
